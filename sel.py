@@ -1,10 +1,15 @@
+from flask import Flask, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 
+app = Flask(__name__)
+
 def scrape_attendance(username, password):
     # Initialize Chrome WebDriver
-    driver = webdriver.Edge()
+    options = webdriver.EdgeOptions()
+    options.add_argument('--headless')  # Run in headless mode
+    driver = webdriver.Edge(options=options)
 
     # Open ERP login page
     driver.get("https://learner.pceterp.in/")
@@ -21,13 +26,13 @@ def scrape_attendance(username, password):
     login_button.click()
 
     # Wait for the attendance page to load
-    time.sleep(5)
+    time.sleep(1)
 
     # Navigate to the attendance page
     driver.get("https://learner.pceterp.in/attendance")
 
     # Wait for the attendance page to load
-    time.sleep(5)
+    time.sleep(1)
 
     # Find the parent div containing all attendance divs
     parent_div = driver.find_element(By.XPATH, "/html/body/div[3]/div/div/div[2]/main/div/div/div/div/div[2]/div[2]/div")
@@ -35,21 +40,32 @@ def scrape_attendance(username, password):
     # Find all child divs containing attendance data
     attendance_divs = parent_div.find_elements(By.XPATH, "./div")
 
+    # Create a list to store attendance data
+    attendance_list = []
+
     # Iterate over each div and extract the data
     for div in attendance_divs:
         # Extract text content of the div
         attendance_data = div.text
 
-        # Print attendance data
-        print("Attendance Data:", attendance_data)
-
-        # Add a sleep of 1 second
-        time.sleep(1)
+        # Add attendance data to the list
+        attendance_list.append(attendance_data)
 
     # Close the browser window
     driver.quit()
 
-# Example usage:
-username = "122B1B200"
-password = "d35789512357b"
-scrape_attendance(username, password)
+    return attendance_list
+@app.route('/attendance', methods=['POST'])
+def get_attendance():
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    if not username or not password:
+        return jsonify({'error': 'Please provide both username and password'}), 400
+
+    attendance_data = scrape_attendance(username, password)
+
+    return jsonify({'attendance': attendance_data}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
