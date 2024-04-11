@@ -55,6 +55,23 @@ def scrape_attendance(username, password):
     driver.quit()
 
     return attendance_list
+
+def clean_attendance_data(attendance_data):
+    # Remove any unwanted characters from the attendance data
+    cleaned_data = [data.strip() for data in attendance_data]
+    cleaned_data = [data.split('\n')[2] for data in cleaned_data]
+    attended = [data.split('/')[0] for data in cleaned_data]
+    total = [data.split('/')[1] for data in cleaned_data]
+
+    a = 0
+    t = 0
+    for i in range(len(attended)):
+        a += int(attended[i])
+        t += int(total[i])
+
+
+    return a/t
+
 @app.route('/attendance', methods=['POST'])
 def get_attendance():
     username = request.json.get('username')
@@ -64,6 +81,7 @@ def get_attendance():
         return jsonify({'error': 'Please provide both username and password'}), 400
 
     attendance_data = scrape_attendance(username, password)
+    attendance_data = clean_attendance_data(attendance_data)
 
     return jsonify({'attendance': attendance_data}), 200
 
